@@ -77,12 +77,13 @@ func (w *csvWriter) Close() error {
 }
 
 type CsvStore struct {
-	dir                string
-	repoCommitWriter   *csvWriter
-	commitWriter       *csvWriter
-	refWriter          *csvWriter
-	commitFileWriter   *csvWriter
-	commitParentWriter *csvWriter
+	dir                   string
+	repoCommitWriter      *csvWriter
+	commitWriter          *csvWriter
+	refWriter             *csvWriter
+	commitFileWriter      *csvWriter
+	commitParentWriter    *csvWriter
+	commitCodeChurnWriter *csvWriter
 }
 
 func NewCsvStore(dir string) (*CsvStore, error) {
@@ -114,6 +115,10 @@ func NewCsvStore(dir string) (*CsvStore, error) {
 	if err != nil {
 		return nil, err
 	}
+	s.commitCodeChurnWriter, err = newCsvWriter(filepath.Join(dir, "commit_code_churns.csv"), code.CommitCodeChurn{})
+	if err != nil {
+		return nil, err
+	}
 	return s, nil
 }
 
@@ -135,6 +140,10 @@ func (c *CsvStore) CommitFiles(file *code.CommitFile) error {
 
 func (c *CsvStore) CommitFileComponents(commitFileComponent *code.CommitFileComponent) error {
 	return c.commitFileWriter.Write(commitFileComponent)
+}
+
+func (c *CsvStore) CommitCodeChurn(commitCodeChurn *code.CommitCodeChurn) error {
+	return c.commitCodeChurnWriter.Write(commitCodeChurn)
 }
 
 func (c *CsvStore) CommitParents(pp []*code.CommitParent) error {
@@ -163,6 +172,9 @@ func (c *CsvStore) Close() error {
 	}
 	if c.commitParentWriter != nil {
 		c.commitParentWriter.Close()
+	}
+	if c.commitCodeChurnWriter != nil {
+		c.commitCodeChurnWriter.Close()
 	}
 	return nil
 }

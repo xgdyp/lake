@@ -15,57 +15,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package code
+package migrationscripts
 
 import (
+	"context"
 	"github.com/apache/incubator-devlake/models/domainlayer"
-	"time"
-
-	"github.com/apache/incubator-devlake/models/common"
+	"gorm.io/gorm"
 )
-
-type Commit struct {
-	common.NoPKModel
-	Sha            string `json:"sha" gorm:"primaryKey;type:varchar(40);comment:commit hash"`
-	Additions      int    `json:"additions" gorm:"comment:Added lines of code"`
-	Deletions      int    `json:"deletions" gorm:"comment:Deleted lines of code"`
-	DevEq          int    `json:"deveq" gorm:"comment:Merico developer equivalent from analysis engine"`
-	Message        string
-	AuthorName     string `gorm:"type:varchar(255)"`
-	AuthorEmail    string `gorm:"type:varchar(255)"`
-	AuthoredDate   time.Time
-	AuthorId       string `gorm:"type:varchar(255)"`
-	CommitterName  string `gorm:"type:varchar(255)"`
-	CommitterEmail string `gorm:"type:varchar(255)"`
-	CommittedDate  time.Time
-	CommitterId    string `gorm:"index;type:varchar(255)"`
-}
-
-func (Commit) TableName() string {
-	return "commits"
-}
-
-type CommitFile struct {
-	domainlayer.DomainEntity
-	CommitSha string `gorm:"type:varchar(40)"`
-	FilePath  string `gorm:"type:varchar(255)"`
-	Additions int
-	Deletions int
-}
-
-func (CommitFile) TableName() string {
-	return "commit_files"
-}
-
-type CommitFileComponent struct {
-	common.NoPKModel
-	CommitFileId  string `gorm:"primaryKey;type:varchar(255)"`
-	ComponentName string `gorm:"type:varchar(255)"`
-}
-
-func (CommitFileComponent) TableName() string {
-	return "commit_file_components"
-}
 
 type CommitCodeChurn struct {
 	domainlayer.DomainEntity
@@ -83,4 +39,24 @@ type CommitCodeChurn struct {
 
 func (CommitCodeChurn) TableName() string {
 	return "code_churn"
+}
+
+type commitCodeChurn struct{}
+
+func (*commitCodeChurn) Up(ctx context.Context, db *gorm.DB) error {
+	err := db.Migrator().AutoMigrate(CommitCodeChurn{})
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
+
+func (*commitCodeChurn) Version() uint64 {
+	return 202208211031
+}
+
+func (*commitCodeChurn) Name() string {
+
+	return "add commit code churn"
 }

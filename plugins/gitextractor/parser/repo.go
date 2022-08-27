@@ -204,7 +204,9 @@ func (r *GitRepo) CollectCommits(subtaskCtx core.SubTaskContext) error {
 	if err != nil {
 		return err
 	}
-
+	if subtaskCtx.GetContext().Value("codechurn") == true {
+		_ = true
+	}
 	return odb.ForEach(func(id *git.Oid) error {
 		select {
 		case <-subtaskCtx.GetContext().Done():
@@ -299,7 +301,7 @@ func (r *GitRepo) getDiffComparedToParent(commitSha string, commit *git.Commit, 
 	if err != nil {
 		return nil, err
 	}
-	err = r.storeCommitFilesFromDiff(commitSha, diff, componentMap)
+	err = r.storeCommitFilesFromDiff(commit, commitSha, diff, componentMap)
 	if err != nil {
 		return nil, err
 	}
@@ -311,10 +313,11 @@ func (r *GitRepo) getDiffComparedToParent(commitSha string, commit *git.Commit, 
 	return stats, nil
 }
 
-func (r *GitRepo) storeCommitFilesFromDiff(commitSha string, diff *git.Diff, componentMap map[string]*regexp.Regexp) error {
+func (r *GitRepo) storeCommitFilesFromDiff(commit *git.Commit, commitSha string, diff *git.Diff, componentMap map[string]*regexp.Regexp) error {
 	var commitFile *code.CommitFile
 	var commitFileComponent *code.CommitFileComponent
 	var err error
+	hunkCounter := 0
 	err = diff.ForEach(func(file git.DiffDelta, progress float64) (
 		git.DiffForEachHunkCallback, error) {
 		if commitFile != nil {
@@ -337,18 +340,40 @@ func (r *GitRepo) storeCommitFilesFromDiff(commitSha string, diff *git.Diff, com
 			}
 		}
 		commitFileComponent.CommitFileId = commitSha + ":" + file.NewFile.Path
-		//commitFileComponent.FilePath = file.NewFile.Path
-		//commitFileComponent.CommitSha = commitSha
 		if commitFileComponent.ComponentName == "" {
 			commitFileComponent.ComponentName = "Default"
 		}
+
 		return func(hunk git.DiffHunk) (git.DiffForEachLineCallback, error) {
+			hunkCounter++
 			return func(line git.DiffLine) error {
+
+				var commitCodeChurn *code.CommitCodeChurn
+				commitCodeChurn = new(code.CommitCodeChurn)
+				commitCodeChurn.CommitSha = commit.Id().String()
+				commitCodeChurn.AuthorName = commit.Committer().Name
+				commitCodeChurn.AuthorEmail = commit.Committer().Email
+				commitCodeChurn.FilePath = file.NewFile.Path
+				commitCodeChurn.ChangedType = line.Origin.String()
+				commitCodeChurn.LineContent = line.Content
+				//change to int
+
+				commitCodeChurn.HunkNum = string(hunkCounter)
+				commitCodeChurn.LineNo = int16(line.NewLineno)
+				commitCodeChurn.OldFilePath = file.OldFile.Path
+
 				if line.Origin == git.DiffLineAddition {
 					commitFile.Additions += line.NumLines
+
 				}
 				if line.Origin == git.DiffLineDeletion {
 					commitFile.Deletions += line.NumLines
+				}
+				if commitCodeChurn != nil {
+					err = r.store.CommitCodeChurn(commitCodeChurn)
+					if err != nil {
+						r.logger.Error("CommitCodeChurn error:", err)
+					}
 				}
 				return nil
 			}, nil

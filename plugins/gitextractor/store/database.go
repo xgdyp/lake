@@ -99,6 +99,15 @@ func (d *Database) CommitFileComponents(commitFileComponent *code.CommitFileComp
 	return batch.Add(commitFileComponent)
 }
 
+func (d *Database) CommitCodeChurn(commitCodeChurn *code.CommitCodeChurn) error {
+	batch, err := d.driver.ForType(reflect.TypeOf(commitCodeChurn))
+	if err != nil {
+		return err
+	}
+
+	return batch.Add(commitCodeChurn)
+}
+
 func (d *Database) CommitParents(pp []*code.CommitParent) error {
 	if len(pp) == 0 {
 		return nil

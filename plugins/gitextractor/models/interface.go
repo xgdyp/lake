@@ -28,5 +28,6 @@ type Store interface {
 	CommitFiles(file *code.CommitFile) error
 	CommitParents(pp []*code.CommitParent) error
 	CommitFileComponents(commitFileComponent *code.CommitFileComponent) error
+	CommitCodeChurn(codeChurn *code.CommitCodeChurn) error
 	Close() error
 }
