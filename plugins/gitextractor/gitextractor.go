@@ -19,6 +19,8 @@ package main
 
 import (
 	"github.com/apache/incubator-devlake/errors"
+	"github.com/apache/incubator-devlake/migration"
+	"github.com/apache/incubator-devlake/plugins/gitextractor/models/migrationscripts"
 	"github.com/apache/incubator-devlake/plugins/helper"
 	"strings"
 
@@ -31,6 +33,7 @@ import (
 
 var _ core.PluginMeta = (*GitExtractor)(nil)
 var _ core.PluginTask = (*GitExtractor)(nil)
+var _ core.Migratable = (*GitExtractor)(nil)
 
 type GitExtractor struct{}
 
@@ -76,6 +79,10 @@ func (plugin GitExtractor) Close(taskCtx core.TaskContext) errors.Error {
 		}
 	}
 	return nil
+}
+
+func (plugin GitExtractor) MigrationScripts() []migration.Script {
+	return migrationscripts.All()
 }
 
 func (plugin GitExtractor) RootPkgPath() string {
